@@ -31,15 +31,16 @@ def fit_576x1024(path):
     l, t = (im.width - W) // 2, (im.height - H) // 2
     im.crop((l, t, l + W, t + H)).save(path)
 
+IMG_BACKEND = os.environ.get("IMG_BACKEND", "kaggle")   # "kaggle" = FREE (SDXL on Kaggle GPU); "gemini" = paid Nano Banana
 # 1) Character reference sheets (one per character, full body, clean bg)
-for k, c in S["characters"].items():
+for k, c in (S["characters"].items() if IMG_BACKEND == "gemini" else []):
     if "ref" not in c: continue
     out = f"refs/{k}.png"
     if not os.path.exists(out):
         gen_image([f"{S['style']}. {c['ref']}. Single character only."], out); time.sleep(8)
 
 # 2) Keyframes, always passing the reference images so faces stay the same
-for b in S["beats"]:
+for b in (S["beats"] if IMG_BACKEND == "gemini" else []):
     for sh in b["shots"]:
         out = f"keyframes/{sh['id']}.png"
         if os.path.exists(out): continue
@@ -63,15 +64,23 @@ for i, b in enumerate(S["beats"]):
     voice = S["characters"][b["speaker"]]["voice"]
     style = ("Read in clear, warm, devotional Hindi storytelling voice, medium pace, not deep or heavy"
              if b["speaker"] == "narrator" else "Speak this Hindi line naturally and clearly, warm emotion, medium pace")
-    for t in range(5):
+    ok = False
+    for t in range(3):
         try:
             r = client.models.generate_content(model=TTS_MODEL, contents=f"{style}: {b['line']}",
                 config=types.GenerateContentConfig(response_modalities=["AUDIO"],
                     speech_config=types.SpeechConfig(voice_config=types.VoiceConfig(
                         prebuilt_voice_config=types.PrebuiltVoiceConfig(voice_name=voice)))))
-            save_pcm(r.candidates[0].content.parts[0].inline_data.data, out); break
+            save_pcm(r.candidates[0].content.parts[0].inline_data.data, out); ok = True; break
         except Exception as e:
             print("tts retry", i, e); time.sleep(30)
+    if not ok:   # FREE fallback: Microsoft Edge neural Hindi voices
+        import asyncio, edge_tts
+        FEMALE = {"Gacrux","Kore","Aoede","Leda","Zephyr","Callirrhoe","Autonoe","Despina","Erinome","Laomedeia","Pulcherrima","Sulafat","Vindemiatrix","Achernar"}
+        ev = "hi-IN-SwaraNeural" if voice in FEMALE else "hi-IN-MadhurNeural"
+        asyncio.run(edge_tts.Communicate(b["line"], ev, rate="-5%").save(f"audio/b{i:02d}.mp3"))
+        os.system(f"ffmpeg -y -loglevel error -i audio/b{i:02d}.mp3 -ar 24000 -ac 1 {out}")
+        print("tts fallback edge", ev)
     print("tts", out); time.sleep(21)
 
 # 4) faster-whisper: trim silence, store exact speech start/end per line

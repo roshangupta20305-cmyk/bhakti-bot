@@ -1,5 +1,6 @@
 # STEP 3 + 5 on Kaggle (Accelerator: GPU T4 x2, Internet ON).
 # Run cells in order. Put shots.json, keyframes/, audio/ in /kaggle/working (or copy from your dataset).
+#   python 02_kaggle_gpu.py images            -> FREE character refs + keyframes (SDXL + IP-Adapter, both GPUs)
 #   python 02_kaggle_gpu.py encode            -> T5 prompt embeds once (GPU0), then frees the 9GB encoder
 #   python 02_kaggle_gpu.py ltx               -> spawns 2 workers, one per T4, half the shots each
 #   python 02_kaggle_gpu.py latentsync        -> lip-sync talking shots (both GPUs) + mouth/jaw blend
@@ -13,6 +14,72 @@ NEG = "zoom in, push in, dolly, camera shake, extra person, duplicate person, de
 TXT_REPO = "Lightricks/LTX-Video-0.9.5"
 CKPT = "https://huggingface.co/Lightricks/LTX-Video/blob/main/ltxv-2b-0.9.8-distilled.safetensors"
 os.makedirs("clips", exist_ok=True); os.makedirs("embeds", exist_ok=True)
+os.makedirs("refs", exist_ok=True); os.makedirs("keyframes", exist_ok=True)
+SDXL = "stabilityai/stable-diffusion-xl-base-1.0"
+IMG_NEG = "text, watermark, logo, extra fingers, deformed hands, extra limbs, extra person, duplicate person, distorted face, blurry, lowres, photo, realistic"
+
+# ---- FREE images on Kaggle GPU: SDXL + IP-Adapter (same character face/costume from its reference) ----
+def sdxl_pipe():
+    from diffusers import StableDiffusionXLPipeline, AutoencoderKL
+    from transformers import CLIPVisionModelWithProjection
+    enc = CLIPVisionModelWithProjection.from_pretrained("h94/IP-Adapter", subfolder="models/image_encoder", torch_dtype=torch.float16)
+    vae = AutoencoderKL.from_pretrained("madebyollin/sdxl-vae-fp16-fix", torch_dtype=torch.float16)
+    pipe = StableDiffusionXLPipeline.from_pretrained(SDXL, vae=vae, image_encoder=enc, torch_dtype=torch.float16,
+                                                     variant="fp16", use_safetensors=True).to("cuda")
+    pipe.load_ip_adapter("h94/IP-Adapter", subfolder="sdxl_models", weight_name="ip-adapter-plus_sdxl_vit-h.safetensors")
+    return pipe
+
+def ref_crop(k):
+    from PIL import Image
+    im = Image.open(f"refs/{k}.png").convert("RGB"); w, h = im.size
+    return im.crop((int(w * .2), 0, int(w * .8), int(h * .5)))   # head + upper body
+
+def fit_576x1024(im):
+    from PIL import Image
+    W, H = 576, 1024; s = max(W / im.width, H / im.height)
+    im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
+    l, t = (im.width - W) // 2, (im.height - H) // 2
+    return im.crop((l, t, l + W, t + H))
+
+def gen_refs():
+    from PIL import Image
+    pipe = sdxl_pipe(); pipe.set_ip_adapter_scale(0.0); blank = Image.new("RGB", (224, 224), "white")
+    for i, (k, c) in enumerate(S["characters"].items()):
+        if "ref" not in c or os.path.exists(f"refs/{k}.png"): continue
+        im = pipe(prompt=f"{S['style']}. {c['ref']}. Single character only, full body, centered.", negative_prompt=IMG_NEG,
+                  ip_adapter_image=blank, width=1024, height=1024, num_inference_steps=30, guidance_scale=6.5,
+                  generator=torch.Generator("cuda").manual_seed(1000 + i)).images[0]
+        im.save(f"refs/{k}.png"); print("ref", k, flush=True)
+
+def img_worker(ids):
+    from PIL import Image
+    pipe = sdxl_pipe(); blank = Image.new("RGB", (224, 224), "white")
+    for sid in ids:
+        sh = next(x for x in SHOTS if x["id"] == sid)
+        if os.path.exists(f"keyframes/{sid}.png"): continue
+        chars = [c for c in sh["chars"] if os.path.exists(f"refs/{c}.png")]
+        if sh["talking"]:
+            extra = " Exactly one person, front-facing close-up, face large and centered, mouth closed, neutral."
+        else:
+            extra = f" Exactly {len(sh['chars'])} person(s) in frame. No other people."
+        prompt = f"{S['style']}. Vertical frame. {sh['image']}.{extra} Five fingers on each hand. No text."
+        if chars:
+            pipe.set_ip_adapter_scale(0.6 if len(chars) == 1 else 0.35); ref = ref_crop(chars[0])
+        else:
+            pipe.set_ip_adapter_scale(0.0); ref = blank
+        seed = int(sid.strip("s") or 0) * 7 + 11 if sid.strip("s").isdigit() else 11
+        im = pipe(prompt=prompt, negative_prompt=IMG_NEG, ip_adapter_image=ref, width=768, height=1344,
+                  num_inference_steps=30, guidance_scale=6.5, generator=torch.Generator("cuda").manual_seed(seed)).images[0]
+        fit_576x1024(im).save(f"keyframes/{sid}.png"); print("keyframe", sid, flush=True)
+
+def images():
+    subprocess.run([sys.executable, __file__, "_refs"], env={**os.environ, "CUDA_VISIBLE_DEVICES": "0"}, check=True)
+    ids = [sh["id"] for sh in SHOTS]
+    ps = [subprocess.Popen([sys.executable, __file__, "_img", ",".join(h)], env={**os.environ, "CUDA_VISIBLE_DEVICES": str(g)})
+          for g, h in enumerate([ids[0::2], ids[1::2]]) if h]
+    for p in ps: p.wait()
+    miss = [i for i in ids if not os.path.exists(f"keyframes/{i}.png")]
+    if miss: raise SystemExit("keyframes missing: " + ",".join(miss))
 
 def prompt_for(sh):
     return f"{S['style']}. {sh['image']}. {sh['motion']}. Smooth natural motion, consistent faces."
@@ -106,7 +173,10 @@ def blend(sid):
 
 if __name__ == "__main__":
     cmd = sys.argv[1]
-    if cmd == "encode": encode()
+    if cmd == "images": images()
+    elif cmd == "_refs": gen_refs()
+    elif cmd == "_img": img_worker(sys.argv[2].split(","))
+    elif cmd == "encode": encode()
     elif cmd == "_w": worker(sys.argv[2].split(","))
     elif cmd == "ltx": launch([sh["id"] for sh in SHOTS])
     elif cmd == "redo": launch([f"{sys.argv[2]}:{sys.argv[3]}"])

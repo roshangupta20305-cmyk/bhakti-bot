@@ -19,7 +19,9 @@ def make_video(topic=None, log=print):
     log("Script ready:\n" + "\n".join(f"{s['characters'][b['speaker']]['name']}: {b['line']}" for b in s["beats"]))
 
     for f in ["01_keyframes_tts.py", "03_check.py", "04_edit.py"]: shutil.copy(f"{HERE}/{f}", job)
-    log("Characters, keyframes aur awaaz bana raha hoon (~15 min, free API limits ki wajah se)...")
+    if not (os.environ.get("KAGGLE_USERNAME") and os.environ.get("KAGGLE_KEY")):
+        raise RuntimeError("Script ban gayi, par video ke liye Kaggle token chahiye (free GPU). GitHub repo Settings > Secrets mein KAGGLE_USERNAME aur KAGGLE_KEY daalo.")
+    log("Awaaz bana raha hoon, phir photos + video free Kaggle GPU par (~1 ghanta)...")
     sh(["01_keyframes_tts.py"], job)
 
     gpu_kaggle.run(job, "full", log)

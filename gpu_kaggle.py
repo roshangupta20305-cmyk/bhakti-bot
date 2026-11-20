@@ -2,7 +2,7 @@
 # Needs ~/.kaggle/kaggle.json (Kaggle > Settings > Create New Token) and phone-verified Kaggle account.
 import os, json, time, shutil, subprocess, zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
-USER = os.environ["KAGGLE_USERNAME"]
+USER = os.environ.get("KAGGLE_USERNAME", "")
 
 RUNNER = r'''
 import os, shutil, glob, subprocess, sys
@@ -12,9 +12,10 @@ for f in os.listdir(src):
     p = os.path.join(src, f)
     (shutil.copytree if os.path.isdir(p) else shutil.copy)(p, f)
 for z in glob.glob("*.zip"): subprocess.run(["unzip", "-oq", z]); os.remove(z)
-subprocess.run("pip install -q -U diffusers transformers accelerate sentencepiece imageio imageio-ffmpeg mediapipe opencv-python-headless", shell=True)
+subprocess.run("pip install -q -U diffusers transformers accelerate peft sentencepiece imageio imageio-ffmpeg mediapipe opencv-python-headless", shell=True)
 MODE = open("mode.txt").read().split()
 if MODE[0] == "full":
+    subprocess.run([sys.executable, "02_kaggle_gpu.py", "images"], check=True)
     subprocess.run([sys.executable, "02_kaggle_gpu.py", "encode"], check=True)
     subprocess.run([sys.executable, "02_kaggle_gpu.py", "ltx"], check=True)
     subprocess.run([sys.executable, "02_kaggle_gpu.py", "latentsync"], check=True)
@@ -27,7 +28,7 @@ else:  # redo s07:777 s10:778 ...
         if t: talk.append(sid)
     if talk: subprocess.run([sys.executable, "02_kaggle_gpu.py", "latentsync", *talk], check=True)
 subprocess.run([sys.executable, "03_check.py"])
-subprocess.run("zip -qr out.zip clips check", shell=True)
+subprocess.run("zip -qr out.zip clips check keyframes refs", shell=True)
 for d in ["LatentSync", "ls", "embeds", "keyframes", "audio", "refs"]: shutil.rmtree(d, ignore_errors=True)
 '''
 
@@ -37,11 +38,14 @@ def _k(*a):
     return r.stdout
 
 def run(job_dir, mode="full", log=print):
+    if not (USER and os.environ.get("KAGGLE_KEY")):
+        raise RuntimeError("Kaggle token abhi nahi laga. GitHub repo Settings > Secrets mein KAGGLE_USERNAME aur KAGGLE_KEY daalo.")
     tag = "full" if mode == "full" else f"redo{int(time.time()) % 100000}"
     slug = ("hb-" + os.path.basename(job_dir.rstrip("/")).lower().replace("_", "-"))[:40] + "-" + tag
     ds = os.path.join(job_dir, "_ds"); shutil.rmtree(ds, ignore_errors=True); os.makedirs(ds)
     with zipfile.ZipFile(f"{ds}/inputs.zip", "w") as z:
-        for d in ["keyframes", "audio"]:
+        for d in ["keyframes", "refs", "audio"]:
+            if not os.path.isdir(f"{job_dir}/{d}"): continue
             for f in os.listdir(f"{job_dir}/{d}"): z.write(f"{job_dir}/{d}/{f}", f"{d}/{f}")
         if os.path.isdir(f"{job_dir}/clips"):
             for f in os.listdir(f"{job_dir}/clips"): z.write(f"{job_dir}/clips/{f}", f"clips/{f}")
