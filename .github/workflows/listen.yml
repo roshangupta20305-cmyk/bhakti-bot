@@ -1,0 +1,32 @@
+name: listen
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # har 15 min Telegram check (GitHub kabhi-kabhi 5-20 min late chalata hai)
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency: listen
+jobs:
+  listen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_OWNER_ID: ${{ secrets.TELEGRAM_OWNER_ID }}
+      META_PAGE_TOKEN: ${{ secrets.META_PAGE_TOKEN }}
+      FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+      IG_USER_ID: ${{ secrets.IG_USER_ID }}
+      YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+      YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+      YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+      YT_PRIVACY: ${{ vars.YT_PRIVACY || 'public' }}
+      POST_TO: ${{ vars.POST_TO || 'youtube,instagram,facebook' }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -q requests google-genai google-api-python-client google-auth
+      - run: python gh_listen.py

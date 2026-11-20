@@ -1,0 +1,88 @@
+{
+  "title": "शबरी के जूठे बेर",
+  "hook": ["शबरी के जूठे बेर", "राम ने क्यों खाए?"],
+  "style": "3D animated Pixar-style cartoon, soft cinematic lighting, warm golden forest colors, ancient Indian ashram setting, highly detailed, expressive friendly faces, clean anatomy, five fingers on each hand, no text, no letters, no signboards, no watermark",
+  "characters": {
+    "shabri": {"name": "शबरी", "voice": "Gacrux",
+      "ref": "Full body character reference of Shabri, a kind elderly Indian tribal woman in her seventies, small and slightly bent, warm wrinkled smiling face, big gentle brown eyes, silver hair tied in a simple bun, simple saffron-brown cotton saree, wooden bead mala, barefoot, standing front view, plain white background"},
+    "ram": {"name": "श्री राम", "voice": "Algieba",
+      "ref": "Full body character reference of Lord Rama, young serene man with soft blue-toned skin, calm kind eyes, gentle smile, black hair in a tied top knot with small rudraksha, yellow pitambar dhoti, saffron angavastram, simple forest-exile look, bow on his shoulder, quiver on back, standing front view, plain white background"},
+    "lakshman": {"name": "लक्ष्मण", "voice": "Puck",
+      "ref": "Full body character reference of Lakshmana, young energetic man with fair golden-brown skin, alert expressive eyes, black hair in a tied top knot, saffron dhoti, green angavastram, bow in hand, quiver on back, standing front view, plain white background"},
+    "narrator": {"name": "सूत्रधार", "voice": "Orus"}
+  },
+  "beats": [
+    {"speaker": "narrator", "line": "वन में एक बूढ़ी भक्तिन, शबरी, बरसों से प्रभु राम की राह देख रही थी।",
+     "shots": [
+      {"id": "s01", "chars": ["shabri"], "talking": false,
+       "image": "Wide shot of a small thatched hut in a sunlit forest ashram at sunrise, Shabri sitting on its doorstep looking down the forest path, full body, birds, soft mist",
+       "motion": "Shabri slowly turns her head toward the path, leaves sway gently, slow gentle camera, no zoom"},
+      {"id": "s02", "chars": ["shabri"], "talking": false,
+       "image": "Medium shot of Shabri standing by the forest path, shading her eyes with one hand, hopeful expression",
+       "motion": "Shabri raises her hand to shade her eyes and looks into the distance, static camera"}]},
+    {"speaker": "shabri", "line": "आज मेरे राम आएँगे... रोज़ यही आस है।",
+     "shots": [
+      {"id": "s03", "chars": ["shabri"], "talking": true,
+       "image": "Close-up front-facing portrait of Shabri, face large and centered in the frame, looking at camera with a soft hopeful smile, forest background softly blurred",
+       "motion": "Shabri talks to the camera, mouth opens and closes, talking, small head nod, static locked-off camera, no zoom, no push in"}]},
+    {"speaker": "narrator", "line": "हर सुबह वह रास्ता बुहारती, और मीठे बेर चुनकर लाती।",
+     "shots": [
+      {"id": "s04", "chars": ["shabri"], "talking": false,
+       "image": "Shabri sweeping the forest path with a simple broom, flower petals on the ground, morning light, full body",
+       "motion": "Shabri sweeps the path with gentle broom strokes, petals move, static camera"},
+      {"id": "s05", "chars": ["shabri"], "talking": false,
+       "image": "Shabri picking red jujube berries from a bush into a small woven basket, medium shot",
+       "motion": "Shabri picks berries with one hand and places them in the basket, static camera"}]},
+    {"speaker": "shabri", "line": "पहले चख लूँ, कहीं कोई बेर खट्टा न हो।",
+     "shots": [
+      {"id": "s06", "chars": ["shabri"], "talking": true,
+       "image": "Close-up front-facing portrait of Shabri holding one red berry near her chin, face large and centered, playful caring smile",
+       "motion": "Shabri talks to the camera, mouth opens and closes, talking, static locked-off camera, no zoom, no push in"}]},
+    {"speaker": "narrator", "line": "और एक दिन... राम और लक्ष्मण सचमुच आ गए।",
+     "shots": [
+      {"id": "s07", "chars": ["ram", "lakshman"], "talking": false,
+       "image": "Rama and Lakshmana walking side by side on the sunlit forest path toward the camera, full body, golden light rays",
+       "motion": "Rama and Lakshmana walk toward camera calmly, slow steady camera, no zoom"},
+      {"id": "s08", "chars": ["shabri"], "talking": false,
+       "image": "Shabri at her hut door with joyful tears, hands joined in namaste, medium shot",
+       "motion": "Shabri brings her hands together in namaste and smiles with joy, static camera"}]},
+    {"speaker": "shabri", "line": "प्रभु! आप आ गए! मेरी कुटिया धन्य हो गई।",
+     "shots": [
+      {"id": "s09", "chars": ["shabri"], "talking": true,
+       "image": "Close-up front-facing portrait of Shabri with joyful teary eyes, face large and centered, hands in namaste below her chin",
+       "motion": "Shabri talks to the camera emotionally, mouth opens and closes, talking, static locked-off camera, no zoom, no push in"}]},
+    {"speaker": "ram", "line": "माँ, आपका प्रेम ही मुझे यहाँ खींच लाया।",
+     "shots": [
+      {"id": "s10", "chars": ["ram"], "talking": true,
+       "image": "Close-up front-facing portrait of Rama, face large and centered, compassionate gentle smile, forest background softly blurred",
+       "motion": "Rama talks to the camera warmly, mouth opens and closes, talking, static locked-off camera, no zoom, no push in"}]},
+    {"speaker": "narrator", "line": "शबरी ने प्रेम से चखे हुए बेर प्रभु को खिलाए।",
+     "shots": [
+      {"id": "s11", "chars": ["shabri", "ram"], "talking": false,
+       "image": "Rama sitting on a mat outside the hut, Shabri kneeling and offering him a berry from her basket, medium shot",
+       "motion": "Shabri hands a berry to Rama, Rama accepts it with a smile, static camera"},
+      {"id": "s12", "chars": ["ram"], "talking": false,
+       "image": "Medium shot of Rama happily eating a red berry, eyes closed in delight",
+       "motion": "Rama eats the berry and smiles, eyes closed, static camera"}]},
+    {"speaker": "lakshman", "line": "भैया, ये बेर तो जूठे हैं!",
+     "shots": [
+      {"id": "s13", "chars": ["lakshman"], "talking": true,
+       "image": "Close-up front-facing portrait of Lakshmana, face large and centered, surprised raised eyebrows",
+       "motion": "Lakshmana talks to the camera in surprise, mouth opens and closes, talking, static locked-off camera, no zoom, no push in"}]},
+    {"speaker": "ram", "line": "लक्ष्मण, इनमें भक्ति की मिठास है।",
+     "shots": [
+      {"id": "s14", "chars": ["ram"], "talking": true,
+       "image": "Close-up front-facing portrait of Rama, face large and centered, serene loving smile, holding a berry",
+       "motion": "Rama talks to the camera calmly, mouth opens and closes, talking, static locked-off camera, no zoom, no push in"}]},
+    {"speaker": "narrator", "line": "प्रभु भोग नहीं, भाव देखते हैं।",
+     "shots": [
+      {"id": "s15", "chars": ["shabri", "ram", "lakshman"], "talking": false,
+       "image": "Wide warm shot of Shabri, Rama and Lakshmana together outside the hut at golden hour, Shabri smiling, Rama blessing her with raised palm",
+       "motion": "Rama raises his palm in blessing, Shabri bows her head, gentle breeze, static camera"}]},
+    {"speaker": "narrator", "line": "जो लाइक करे और कमेंट में जय श्री राम लिखे, उस पर प्रभु की कृपा सदा बनी रहे।",
+     "shots": [
+      {"id": "s16", "chars": ["ram"], "talking": false,
+       "image": "Rama standing in divine golden light in the forest, raised right palm in blessing, gentle smile, full body, glowing halo",
+       "motion": "Rama holds his palm in blessing, soft glowing light, static camera, no zoom"}]}
+  ]
+}

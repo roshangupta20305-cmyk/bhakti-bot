@@ -1,0 +1,7 @@
+google-genai
+pillow
+faster-whisper
+kaggle
+requests
+google-api-python-client
+google-auth
