@@ -29,7 +29,9 @@ def post(rel):
     tg.send("\n".join(f"{k}: {v}" for k, v in out.items()))
     subprocess.run(["gh", "release", "edit", rel, "--title", "POSTED " + meta["title"][:90]])
 
+print("owner id set:", bool(tg.OWNER))
 for u in tg.updates():
+    print("update from:", ((u.get("message") or {}).get("from") or {}).get("id") == tg.OWNER)
     if "callback_query" in u:
         cb = u["callback_query"]
         if cb["from"]["id"] != tg.OWNER: continue
@@ -51,5 +53,5 @@ for u in tg.updates():
         start_make(text[5:].strip())
     elif text.startswith("/status"):
         n = running(); tg.send(f"{n} video abhi ban raha hai." if n else "Abhi kuch nahi chal raha.")
-    elif text.startswith("/start") or text.startswith("/help"):
+    else:
         tg.send("Commands: /ideas, /make <topic>, /status. Har video pehle aapko aayega, Post dabane par hi upload hoga. Jawab 15-20 min mein aata hai.")

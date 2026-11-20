@@ -6,7 +6,8 @@ OWNER = int(os.environ["TELEGRAM_OWNER_ID"])
 def send(text, buttons=None):
     d = {"chat_id": OWNER, "text": text[:4000]}
     if buttons: d["reply_markup"] = json.dumps({"inline_keyboard": buttons})
-    try: requests.post(f"{API}/sendMessage", data=d, timeout=30)
+    try:
+        r = requests.post(f"{API}/sendMessage", data=d, timeout=30); print("send:", r.status_code, r.text[:200])
     except Exception as e: print("tg send failed", e)
 
 def send_video(path, caption, buttons=None):
@@ -17,7 +18,9 @@ def send_video(path, caption, buttons=None):
 
 def updates():
     """Read all pending updates, then confirm them so they are not read again."""
-    u = requests.get(f"{API}/getUpdates", params={"timeout": 0}, timeout=30).json().get("result", [])
+    j = requests.get(f"{API}/getUpdates", params={"timeout": 0}, timeout=30).json()
+    print("getUpdates ok:", j.get("ok"), j.get("description", ""), "count:", len(j.get("result", [])))
+    u = j.get("result", [])
     if u: requests.get(f"{API}/getUpdates", params={"offset": u[-1]["update_id"] + 1, "timeout": 0}, timeout=30)
     return u
 
