@@ -1,7 +1,7 @@
 google-genai
 pillow
 faster-whisper
-kaggle
+kaggle>=1.8
 requests
 google-api-python-client
 google-auth

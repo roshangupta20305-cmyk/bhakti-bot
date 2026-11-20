@@ -3,6 +3,8 @@
 import os, json, time, shutil, subprocess, zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 USER = os.environ.get("KAGGLE_USERNAME", "")
+if os.environ.get("KAGGLE_KEY", "").startswith("KGAT_"):   # new-style Kaggle API token
+    os.environ["KAGGLE_API_TOKEN"] = os.environ["KAGGLE_KEY"]
 
 RUNNER = r'''
 import os, shutil, glob, subprocess, sys
