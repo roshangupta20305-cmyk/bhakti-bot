@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Rk Agent</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f0f14;color:#eee;height:100vh;display:flex;flex-direction:column}
+header{background:#ff7a00;color:#fff;padding:12px 14px;font-weight:700;font-size:18px}
+nav{display:flex;background:#1a1a22}
+nav button{flex:1;padding:12px;background:none;border:0;color:#aaa;font-size:15px}
+nav button.on{color:#ff9a3c;border-bottom:3px solid #ff7a00}
+.tab{display:none;flex:1;overflow:auto;padding:12px}
+.tab.on{display:flex;flex-direction:column}
+#msgs{flex:1;overflow:auto;padding-bottom:8px}
+.m{max-width:85%;padding:10px 12px;border-radius:14px;margin:6px 0;white-space:pre-wrap;line-height:1.45;font-size:15px}
+.u{background:#ff7a00;color:#fff;align-self:flex-end;margin-left:auto}
+.a{background:#23232e}
+.s{background:#18321f;color:#9fe0a8;font-size:13px}
+#chips{display:flex;gap:6px;overflow-x:auto;padding:6px 0}
+#chips button{white-space:nowrap;background:#23232e;color:#ffb066;border:1px solid #444;border-radius:16px;padding:6px 10px;font-size:13px}
+.row{display:flex;gap:6px}
+textarea,input{width:100%;background:#1a1a22;color:#eee;border:1px solid #444;border-radius:10px;padding:10px;font-size:15px}
+textarea{resize:none;height:48px}
+.btn{background:#ff7a00;color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:15px;font-weight:600}
+.btn2{background:#333;color:#eee;border:0;border-radius:10px;padding:8px 12px;font-size:14px}
+label{display:block;margin:12px 0 4px;color:#bbb;font-size:14px}
+.card{background:#1a1a22;border-radius:10px;padding:10px;margin:6px 0;font-size:14px}
+a{color:#ff9a3c}
+small{color:#888}
+</style>
+</head>
+<body>
+<header>🙏 Rk Agent</header>
+<nav>
+ <button data-t="chat" class="on">Chat</button>
+ <button data-t="video">Video</button>
+ <button data-t="set">Settings</button>
+</nav>
+
+<section id="chat" class="tab on">
+ <div id="msgs"></div>
+ <div id="chips">
+  <button>आज का video idea दो</button>
+  <button>इस idea की 60 sec script लिखो</button>
+  <button>Caption + hashtags बनाओ</button>
+  <button>Thumbnail idea दो</button>
+  <button>मेरे video की status बताओ</button>
+ </div>
+ <div class="row">
+  <textarea id="inp" placeholder="कुछ भी पूछो… (जैसे: Hanuman ji पर video बनाओ)"></textarea>
+  <button class="btn" id="send">➤</button>
+ </div>
+ <div style="text-align:right;margin-top:4px"><button class="btn2" id="clear">Chat साफ़ करो</button></div>
+</section>
+
+<section id="video" class="tab">
+ <label>Video का topic (खाली छोड़ो तो agent खुद चुनेगा)</label>
+ <input id="topic" placeholder="जैसे: शबरी के जूठे बेर">
+ <div style="margin-top:10px"><button class="btn" id="make">🎬 Video बनाओ + Post करो</button></div>
+ <p style="margin-top:8px"><small>Video free cloud (GitHub + Kaggle) पर बनेगा। Post से पहले Telegram पर approve button आएगा।</small></p>
+ <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
+  <b>पिछले videos</b><button class="btn2" id="refresh">↻ Refresh</button>
+ </div>
+ <div id="runs"></div>
+</section>
+
+<section id="set" class="tab">
+ <label>Gemini API key (free) — <a href="https://aistudio.google.com/apikey">यहाँ से लो</a></label>
+ <input id="gkey" type="password" placeholder="AIza...">
+ <label>GitHub token (video बनवाने के लिए) — <a href="https://github.com/settings/personal-access-tokens/new">यहाँ से लो</a></label>
+ <input id="ghtok" type="password" placeholder="github_pat_...">
+ <small>Token बनाते समय: Repository access → Only select → bhakti-bot, Permissions → Actions: Read and write.</small>
+ <label>GitHub repo</label>
+ <input id="repo">
+ <label>Agent को अपने बारे में बताओ (optional)</label>
+ <textarea id="about" style="height:90px" placeholder="जैसे: मैं Karnal से हूँ, bhakti channel चलाता हूँ…"></textarea>
+ <div style="margin-top:12px"><button class="btn" id="save">Save</button> <span id="saved"></span></div>
+</section>
+
+<script>
+const $=id=>document.getElementById(id);
+const LS=localStorage;
+const DEF_REPO="roshangupta20305-cmyk/bhakti-bot";
+const cfg=()=>({g:LS.gkey||"",t:LS.ghtok||"",r:LS.repo||DEF_REPO,about:LS.about||""});
+let hist=JSON.parse(LS.hist||"[]");
+
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav button,.tab").forEach(x=>x.classList.remove("on"));
+ b.classList.add("on");$(b.dataset.t).classList.add("on");
+ if(b.dataset.t==="video")loadRuns();
+});
+
+// settings
+$("gkey").value=LS.gkey||"";$("ghtok").value=LS.ghtok||"";$("repo").value=LS.repo||DEF_REPO;$("about").value=LS.about||"";
+$("save").onclick=()=>{LS.gkey=$("gkey").value.trim();LS.ghtok=$("ghtok").value.trim();LS.repo=$("repo").value.trim()||DEF_REPO;LS.about=$("about").value;$("saved").textContent="✅ Saved";setTimeout(()=>$("saved").textContent="",2000)};
+
+// github
+async function gh(path,opt={}){
+ const c=cfg(); if(!c.t)throw new Error("Settings में GitHub token डालो");
+ const r=await fetch("https://api.github.com/repos/"+c.r+path,{...opt,headers:{"Authorization":"Bearer "+c.t,"Accept":"application/vnd.github+json","Content-Type":"application/json"}});
+ if(!r.ok)throw new Error("GitHub error "+r.status+": "+(await r.text()).slice(0,150));
+ return r.status===204?{}:r.json();
+}
+async function makeVideo(topic){
+ await gh("/actions/workflows/make.yml/dispatches",{method:"POST",body:JSON.stringify({ref:"main",inputs:{topic:topic||""}})});
+ return "Video बनना शुरू हो गया"+(topic?(" ("+topic+")"):"")+". 20-60 मिनट लगेंगे, Telegram पर preview + approve button आएगा.";
+}
+async function runsText(){
+ const d=await gh("/actions/workflows/make.yml/runs?per_page=5");
+ if(!d.workflow_runs.length)return "अभी तक कोई video नहीं बना.";
+ return d.workflow_runs.map(r=>{
+  const st=r.status!=="completed"?"⏳ बन रहा है":(r.conclusion==="success"?"✅ बन गया":"❌ fail ("+r.conclusion+")");
+  return st+" — "+new Date(r.created_at).toLocaleString("hi-IN")+(r.display_title?(" — "+r.display_title):"");
+ }).join("\n");
+}
+async function loadRuns(){
+ $("runs").innerHTML="<div class='card'>Loading…</div>";
+ try{
+  const d=await gh("/actions/workflows/make.yml/runs?per_page=8");
+  $("runs").innerHTML=d.workflow_runs.map(r=>{
+   const st=r.status!=="completed"?"⏳ बन रहा है":(r.conclusion==="success"?"✅ बन गया":"❌ "+r.conclusion);
+   return `<div class="card">${st}<br><small>${new Date(r.created_at).toLocaleString("hi-IN")}</small> · <a href="${r.html_url}">details</a></div>`;
+  }).join("")||"<div class='card'>अभी कोई video नहीं.</div>";
+ }catch(e){$("runs").innerHTML="<div class='card'>"+e.message+"</div>"}
+}
+$("make").onclick=async()=>{
+ $("make").disabled=true;
+ try{alert(await makeVideo($("topic").value.trim()));$("topic").value="";setTimeout(loadRuns,4000)}
+ catch(e){alert(e.message)}
+ $("make").disabled=false;
+};
+$("refresh").onclick=loadRuns;
+
+// chat
+function add(cls,t){const d=document.createElement("div");d.className="m "+cls;d.textContent=t;$("msgs").appendChild(d);$("msgs").scrollTop=1e9;return d}
+function render(){$("msgs").innerHTML="";if(!hist.length)add("a","नमस्ते! मैं आपका personal AI agent हूँ। Video idea, script, caption, कोई भी सवाल पूछो, या बोलो \"___ पर video बनाओ\" तो मैं video बनवाकर post करवा दूँगा।");
+ hist.forEach(h=>{const t=(h.parts||[]).map(p=>p.text||"").join("");if(t)add(h.role==="user"?"u":"a",t)})}
+render();
+const TOOLS=[{functionDeclarations:[
+ {name:"make_video",description:"User के कहने पर AI video बनवाना शुरू करो जो बनकर YouTube/Instagram/Facebook पर post होगा (Telegram approve के बाद).",parameters:{type:"OBJECT",properties:{topic:{type:"STRING",description:"video का topic, खाली हो तो agent खुद चुनेगा"}}}},
+ {name:"video_status",description:"हाल ही में बने/बन रहे videos की status देखो",parameters:{type:"OBJECT",properties:{}}}
+]}];
+function sys(){return "तुम Rk Sahu (Roshan) के personal AI agent हो, नाम 'Rk Agent'. हमेशा आसान हिंदी/Hinglish में छोटा, साफ़ और काम का जवाब दो. तुम content creation में expert हो: viral video ideas, scripts (hook पहले 3 sec में), captions, hashtags, thumbnail ideas, YouTube Shorts/Instagram Reels growth. जब user video बनवाना या post करवाना चाहे तो make_video tool चलाओ; status पूछे तो video_status. "+(cfg().about?("User के बारे में: "+cfg().about):"")}
+async function gemini(contents){
+ const c=cfg(); if(!c.g)throw new Error("पहले Settings में Gemini API key डालो (free है).");
+ const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+encodeURIComponent(c.g),{method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({systemInstruction:{parts:[{text:sys()}]},contents,tools:TOOLS})});
+ const j=await r.json(); if(!r.ok)throw new Error("Gemini error: "+(j.error&&j.error.message||r.status));
+ return j.candidates[0].content;
+}
+async function send(text){
+ if(!text)return; $("inp").value="";
+ hist.push({role:"user",parts:[{text}]}); add("u",text);
+ const wait=add("a","सोच रहा हूँ…");
+ try{
+  let work=hist.slice(-30);
+  for(let i=0;i<3;i++){
+   const out=await gemini(work);
+   const fc=(out.parts||[]).find(p=>p.functionCall);
+   if(!fc){const t=(out.parts||[]).map(p=>p.text||"").join("");hist.push({role:"model",parts:[{text:t}]});wait.textContent=t;break}
+   let res;
+   try{res=fc.functionCall.name==="make_video"?await makeVideo((fc.functionCall.args||{}).topic):await runsText()}catch(e){res="Error: "+e.message}
+   add("s","⚙️ "+res);
+   work=work.concat([out,{role:"user",parts:[{functionResponse:{name:fc.functionCall.name,response:{result:res}}}]}]);
+  }
+ }catch(e){wait.textContent="⚠️ "+e.message;hist.pop()}
+ LS.hist=JSON.stringify(hist.slice(-60));
+}
+$("send").onclick=()=>send($("inp").value.trim());
+document.querySelectorAll("#chips button").forEach(b=>b.onclick=()=>send(b.textContent));
+$("clear").onclick=()=>{hist=[];LS.hist="[]";render()};
+</script>
+</body>
+</html>
