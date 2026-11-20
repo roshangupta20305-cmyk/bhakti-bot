@@ -7,7 +7,7 @@ from google import genai
 from google.genai import types
 
 S = json.load(open("shots.json", encoding="utf-8"))
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"], http_options=types.HttpOptions(api_version="v1beta"))
 IMG_MODEL = "gemini-2.5-flash-image"
 TTS_MODEL = os.environ.get("TTS_MODEL", "gemini-2.5-flash-preview-tts")
 os.makedirs("refs", exist_ok=True); os.makedirs("keyframes", exist_ok=True); os.makedirs("audio", exist_ok=True)

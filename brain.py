@@ -3,7 +3,7 @@ import os, json, re, random
 from google import genai
 from google.genai import types
 
-client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"], http_options=types.HttpOptions(api_version="v1beta"))
 TEXT_MODEL = os.environ.get("TEXT_MODEL", "gemini-2.5-flash")
 HERE = os.path.dirname(os.path.abspath(__file__))
 HISTORY = os.path.join(HERE, "history.json")
