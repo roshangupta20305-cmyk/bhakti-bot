@@ -16,9 +16,9 @@ def send_video(path, caption, buttons=None):
     r = requests.post(f"{API}/sendVideo", data=d, files={"video": open(path, "rb")}, timeout=300)
     print(r.text[:300])
 
-def updates():
+def updates(wait=0):
     """Read all pending updates, then confirm them so they are not read again."""
-    j = requests.get(f"{API}/getUpdates", params={"timeout": 0}, timeout=30).json()
+    j = requests.get(f"{API}/getUpdates", params={"timeout": wait}, timeout=wait + 30).json()
     print("getUpdates ok:", j.get("ok"), j.get("description", ""), "count:", len(j.get("result", [])))
     u = j.get("result", [])
     if u: requests.get(f"{API}/getUpdates", params={"offset": u[-1]["update_id"] + 1, "timeout": 0}, timeout=30)

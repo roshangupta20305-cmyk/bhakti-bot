@@ -29,20 +29,23 @@ def post(rel):
     tg.send("\n".join(f"{k}: {v}" for k, v in out.items()))
     subprocess.run(["gh", "release", "edit", rel, "--title", "POSTED " + meta["title"][:90]])
 
+import time
 print("owner id set:", bool(tg.OWNER))
-for u in tg.updates():
+END = time.time() + 5.7 * 3600   # ~6 ghante tak lagatar sunta hai, phir agla run le leta hai
+
+def handle(u):
     print("update from:", ((u.get("message") or {}).get("from") or {}).get("id") == tg.OWNER)
     if "callback_query" in u:
         cb = u["callback_query"]
-        if cb["from"]["id"] != tg.OWNER: continue
+        if cb["from"]["id"] != tg.OWNER: return
         tg.answer_cb(cb["id"])
         kind, val = cb["data"].split(":", 1)
         if kind == "post": post(val)
         elif kind == "drop": tg.send("Theek hai, post nahi kiya.")
         elif kind == "idea": start_make(val)
-        continue
+        return
     msg = u.get("message") or {}
-    if (msg.get("from") or {}).get("id") != tg.OWNER: continue
+    if (msg.get("from") or {}).get("id") != tg.OWNER: return
     text = (msg.get("text") or "").strip()
     if text.startswith("/ideas"):
         import brain
@@ -54,4 +57,13 @@ for u in tg.updates():
     elif text.startswith("/status"):
         n = running(); tg.send(f"{n} video abhi ban raha hai." if n else "Abhi kuch nahi chal raha.")
     else:
-        tg.send("Commands: /ideas, /make <topic>, /status. Har video pehle aapko aayega, Post dabane par hi upload hoga. Jawab 15-20 min mein aata hai.")
+        tg.send("Commands: /ideas, /make <topic>, /status. Har video pehle aapko aayega, Post dabane par hi upload hoga. Jawab turant aata hai (kabhi-kabhi kuch minute ka gap).")
+
+
+while time.time() < END:
+    try:
+        for u in tg.updates(wait=50):
+            try: handle(u)
+            except Exception as e: print("handle error", e); tg.send(f"Error: {e}")
+    except Exception as e:
+        print("poll error", e); time.sleep(5)
