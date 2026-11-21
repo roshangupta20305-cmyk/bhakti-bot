@@ -15,10 +15,20 @@ def _json(text):
     m = re.search(r"\{.*\}|\[.*\]", text, re.S)
     return json.loads(m.group(0))
 
+_MODELS = [m for m in dict.fromkeys([os.environ.get("TEXT_MODEL", ""), "gemini-3.8-flash", "gemini-flash-latest", "gemini-2.5-flash"]) if m]
+
 def _ask(prompt):
-    r = client.models.generate_content(model=TEXT_MODEL, contents=prompt,
-        config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.9))
-    return _json(r.text)
+    last = None
+    for m in list(_MODELS):
+        try:
+            r = client.models.generate_content(model=m, contents=prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0.9))
+            if _MODELS[0] != m: _MODELS.remove(m); _MODELS.insert(0, m)
+            return _json(r.text)
+        except Exception as e:
+            last = e
+            if not any(k in str(e).lower() for k in ("not found", "no longer available", "404", "not supported", "model")): raise
+    raise last
 
 def history():
     return json.load(open(HISTORY, encoding="utf-8")) if os.path.exists(HISTORY) else []

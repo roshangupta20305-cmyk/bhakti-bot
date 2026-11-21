@@ -15,6 +15,7 @@ for f in os.listdir(src):
     (shutil.copytree if os.path.isdir(p) else shutil.copy)(p, f)
 for z in glob.glob("*.zip"): subprocess.run(["unzip", "-oq", z]); os.remove(z)
 subprocess.run("pip install -q -U diffusers transformers accelerate peft sentencepiece imageio imageio-ffmpeg mediapipe opencv-python-headless", shell=True)
+print(subprocess.run("nvidia-smi; python -c 'import torch,diffusers,transformers;print(torch.__version__,diffusers.__version__,transformers.__version__)'", shell=True, capture_output=True, text=True).stdout, flush=True)
 MODE = open("mode.txt").read().split()
 if MODE[0] == "full":
     subprocess.run([sys.executable, "02_kaggle_gpu.py", "images"], check=True)
@@ -38,6 +39,21 @@ def _k(*a):
     r = subprocess.run(["kaggle", *a], capture_output=True, text=True)
     if r.returncode: raise RuntimeError(r.stderr or r.stdout)
     return r.stdout
+
+def _fail_log(ref, job_dir):
+    d = os.path.join(job_dir, "_faillog"); shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
+    try: subprocess.run(["kaggle", "kernels", "output", ref, "-p", d], capture_output=True, text=True, timeout=600)
+    except Exception as e: return "log download failed: " + str(e)
+    txt = ""
+    for f in os.listdir(d):
+        if f.endswith(".log") or f.endswith(".txt"):
+            raw = open(os.path.join(d, f), errors="ignore").read()
+            try:
+                lines = [json.loads(x).get("data", "") for x in json.loads(raw)] if raw.lstrip().startswith("[") else [raw]
+            except Exception:
+                lines = [raw]
+            txt += "".join(lines)
+    return txt[-8000:] or "no log file found"
 
 def run(job_dir, mode="full", log=print):
     if not (USER and os.environ.get("KAGGLE_KEY")):
@@ -71,7 +87,12 @@ def run(job_dir, mode="full", log=print):
         time.sleep(120)
         st = _k("kernels", "status", f"{USER}/{slug}-gpu").lower()
         if "complete" in st: break
-        if "error" in st or "cancel" in st: raise RuntimeError("Kaggle run failed: " + st)
+        if "error" in st or "cancel" in st:
+            tail = _fail_log(f"{USER}/{slug}-gpu", job_dir)
+            print("===== KAGGLE LOG TAIL =====\n" + tail + "\n===== END =====", flush=True)
+            try: log("Kaggle GPU error:\n" + tail[-3000:])
+            except Exception: pass
+            raise RuntimeError("Kaggle run failed: " + st)
     out = os.path.join(job_dir, "_out"); shutil.rmtree(out, ignore_errors=True)
     _k("kernels", "output", f"{USER}/{slug}-gpu", "-p", out)
     with zipfile.ZipFile(f"{out}/out.zip") as z: z.extractall(job_dir)
