@@ -8,12 +8,17 @@ if os.environ.get("KAGGLE_KEY", "").startswith("KGAT_"):   # new-style Kaggle AP
 
 RUNNER = r'''
 import os, shutil, glob, subprocess, sys
-src = glob.glob("/kaggle/input/*/")[0]
+_m = glob.glob("/kaggle/input/**/mode.txt", recursive=True)
+if not _m: raise SystemExit("INPUT DATASET NOT MOUNTED: " + str(glob.glob("/kaggle/input/**", recursive=True)[:30]))
+src = os.path.dirname(_m[0]) + "/"
+import torch
+if not torch.cuda.is_available(): raise SystemExit("NO GPU: Kaggle account phone-verify karo (Settings > Phone verification), tab GPU aur Internet milta hai.")
 os.chdir("/kaggle/working")
 for f in os.listdir(src):
     p = os.path.join(src, f)
     (shutil.copytree if os.path.isdir(p) else shutil.copy)(p, f)
 for z in glob.glob("*.zip"): subprocess.run(["unzip", "-oq", z]); os.remove(z)
+if subprocess.run("curl -sI https://pypi.org -m 15", shell=True).returncode: raise SystemExit("NO INTERNET: Kaggle account phone-verify karo, tab Internet on hota hai.")
 subprocess.run("pip install -q -U diffusers transformers accelerate peft sentencepiece imageio imageio-ffmpeg mediapipe opencv-python-headless", shell=True)
 print(subprocess.run("nvidia-smi; python -c 'import torch,diffusers,transformers;print(torch.__version__,diffusers.__version__,transformers.__version__)'", shell=True, capture_output=True, text=True).stdout, flush=True)
 MODE = open("mode.txt").read().split()
